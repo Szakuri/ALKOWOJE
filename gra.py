@@ -12,7 +12,7 @@ def move_player(player, steps):
         messagebox.showinfo("Awans na poziom", f"Gracz {player['name']} awansował na poziom {player['level']}")
         player["position"] -= 50
 
-def process_event(player):
+def process_event(player, players):
     event = random.randint(1, 3)
     if event == 1:
         messagebox.showinfo("Skarb!", f"Gracz {player['name']} znalazł skarb! Otrzymuje dodatkowe 100 punktów.")
@@ -20,23 +20,26 @@ def process_event(player):
     elif event == 2:
         messagebox.showinfo("Przeciwnik!", f"Gracz {player['name']} natknął się na przeciwnika! Traci 50 punktów.")
         player["score"] -= 50
+    elif event == 3:
+        messagebox.showinfo("Dodatkowy ruch!", f"Gracz {player['name']} wejdzie na pole 31 i otrzymuje dodatkowy ruch.")
+        play_game(players)  # Wywołujemy rekurencyjnie funkcję play_game dla tego samego gracza
     else:
         messagebox.showinfo("Kontynuacja podróży", f"Gracz {player['name']} kontynuuje podróż.")
 
 def play_game(players):
-    while True:
-        for player in players:
-            messagebox.showinfo("Tura gracza", f"Tura gracza {player['name']}")
-            roll = roll_dice()
-            messagebox.showinfo("Wyrzucono", f"Wyrzucono: {roll}")
-            move_player(player, roll)
-            process_event(player)
-            messagebox.showinfo("Aktualny poziom", f"Aktualny poziom gracza {player['name']}: {player['level']}")
-            messagebox.showinfo("Aktualny wynik", f"Aktualny wynik gracza {player['name']}: {player['score']}")
-
-            if player["level"] >= 10:
-                messagebox.showinfo("Wygrana!", f"Gracz {player['name']} osiągnął maksymalny poziom!")
-                return
+    for player in players:
+        messagebox.showinfo("Tura gracza", f"Tura gracza {player['name']}")
+        roll = roll_dice()
+        messagebox.showinfo("Wyrzucono", f"Wyrzucono: {roll}")
+        move_player(player, roll)
+        current_position = player["position"]
+        process_event(player, players)
+        new_position = player["position"]
+        messagebox.showinfo("Aktualny poziom", f"Aktualny poziom gracza {player['name']}: {player['level']}")
+        messagebox.showinfo("Aktualny wynik", f"Aktualny wynik gracza {player['name']}: {player['score']}")
+        if current_position < new_position:
+            messagebox.showinfo("Dodatkowy ruch!", f"Gracz {player['name']} otrzymuje dodatkowy ruch.")
+            play_game(players)  # Wywołujemy rekurencyjnie funkcję play_game dla tego samego gracza
 
 def start_game():
     num_players = int(num_players_var.get())
