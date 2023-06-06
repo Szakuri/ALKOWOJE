@@ -1,6 +1,23 @@
 import random
-import tkinter as tk
-from tkinter import messagebox
+import pygame
+import pygame_gui
+
+# Inicjalizacja biblioteki pygame
+pygame.init()
+
+# Rozmiar okna gry
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+
+# Kolory
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+
+# Inicjalizacja okna gry
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Gra planszowa")
+
+clock = pygame.time.Clock()
 
 def roll_dice():
     return random.randint(0, 10)
@@ -11,11 +28,9 @@ def move_player(player, steps):
         improve = player["level"] * 30
         if player["position"] >= improve:
             player["level"] += 1
-            messagebox.showinfo("Awans na poziom", f"Gracz {player['name']} awansował na poziom {player['level']}")
+            print(f"Awans na poziom: Gracz {player['name']} awansował na poziom {player['level']}")
     else:
         improve = (player["level"] * 30) + ((player["level"]-5)*20)
-        
-
 
 def process_event(player, players):
     event = random.choices(
@@ -25,61 +40,100 @@ def process_event(player, players):
     )[0]
 
     if event == "Alkowalka":
-        messagebox.showinfo("Alkowalka!", f"Gracz {player['name']} musi stoczyć pojedynek z wybraną przez niego osobą.")
+        print(f"Alkowalka!: Gracz {player['name']} musi stoczyć pojedynek z wybraną przez niego osobą.")
         player["score"] += 100
     elif event == "Globalne":
-        messagebox.showinfo("Globalne!", f"Gracz {player['name']} natknął się na Globalne wydarzenie! Traci 50 punktów.")
+        print(f"Globalne!: Gracz {player['name']} natknął się na Globalne wydarzenie! Traci 50 punktów.")
         player["score"] -= 50
     elif event == "Personalne":
-        messagebox.showinfo("Personalne!", f"Gracz {player['name']} spotyka osobiste wydarzenie! Otrzymuje dodatkowy ruch.")
+        print(f"Personalne!: Gracz {player['name']} spotyka osobiste wydarzenie! Otrzymuje dodatkowy ruch.")
         play_game(players)  # Wywołujemy rekurencyjnie funkcję play_game dla tego samego gracza
     elif event == "Puste pole":
-        messagebox.showinfo("Puste pole!", f"Gracz {player['name']} wchodzi na puste pole. Nic się nie dzieje.")
+        print(f"Puste pole!: Gracz {player['name']} wchodzi na puste pole. Nic się nie dzieje.")
     elif event == "Bar":
-        messagebox.showinfo("Bar!", f"Gracz {player['name']} trafia do baru! Otrzymuje dodatkowe 50 punktów.")
+        print(f"Bar!: Gracz {player['name']} trafia do baru! Otrzymuje dodatkowe 50 punktów.")
         player["score"] += 50
 
 def play_game(players):
     for player in players:
-        messagebox.showinfo("Tura gracza", f"Tura gracza {player['name']}")
+        print(f"Tura gracza: {player['name']}")
         roll = roll_dice()
-        messagebox.showinfo("Wyrzucono", f"Wyrzucono: {roll}")
+        print(f"Wyrzucono: {roll}")
         move_player(player, roll)
         current_position = player["position"]
         process_event(player, players)
         new_position = player["position"]
-        messagebox.showinfo("Aktualny poziom", f"Aktualny poziom gracza {player['name']}: {player['level']}")
-        messagebox.showinfo("Aktualny wynik", f"Aktualny wynik gracza {player['name']}: {player['score']}")
         if current_position < new_position:
-            messagebox.showinfo("Dodatkowy ruch!", f"Gracz {player['name']} otrzymuje dodatkowy ruch.")
+            print(f"Dodatkowy ruch!: Gracz {player['name']} otrzymuje dodatkowy ruch.")
             play_game(players)  # Wywołujemy rekurencyjnie funkcję play_game dla tego samego gracza
 
-def start_game():
-    num_players = int(num_players_var.get())
+def draw_text(surface, text, font, color, x, y):
+    text_surface = font.render(text, True, color)
+    text_rect = text_surface.get_rect()
+    text_rect.center = (x, y)
+    surface.blit(text_surface, text_rect)
+
+def game_loop():
+    running = True
+    start_game = False  # Flaga informująca, czy gra rozpoczęła się
+
+    num_players = 2  # Domyślna liczba graczy
     players = []
 
-    for i in range(num_players):
-        player_name = f"Gracz {i + 1}"
-        player = {"name": player_name, "level": 1, "position": 0, "score": 0}
-        players.append(player)
+    manager = pygame_gui.UIManager((SCREEN_WIDTH, SCREEN_HEIGHT))
 
-    play_game(players)
+    # Tworzenie elementów interfejsu użytkownika
+    start_button = pygame_gui.elements.UIButton(
+        relative_rect=pygame.Rect((SCREEN_WIDTH // 2 - 50, SCREEN_HEIGHT // 2 - 25), (100, 50)),
+        text="Start",
+        manager=manager
+    )
 
-# Tworzenie GUI
-window = tk.Tk()
-window.title("Gra planszowa")
-window.geometry("300x200")
+    player_input = pygame_gui.elements.UITextEntryLine(
+        relative_rect=pygame.Rect((SCREEN_WIDTH // 2 - 50, SCREEN_HEIGHT // 2 - 100), (100, 30)),
+        manager=manager
+    )
 
-num_players_label = tk.Label(window, text="Liczba graczy (1-8):")
-num_players_label.pack()
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
 
-num_players_var = tk.StringVar(window)
-num_players_var.set("2")
+            if event.type == pygame.USEREVENT:
+                if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
+                    if event.ui_element == start_button:
+                        input_text = player_input.get_text()
+                        if input_text.isdigit():
+                            start_game = True
+                            num_players = int(input_text)
 
-num_players_menu = tk.OptionMenu(window, num_players_var, "1", "2", "3", "4", "5", "6", "7", "8")
-num_players_menu.pack()
+    screen.fill(BLACK)
 
-start_button = tk.Button(window, text="Rozpocznij grę", command=start_game)
-start_button.pack()
+    if start_game:
+        # Wyświetlanie statystyk graczy
+        player_stats = ""
+        for player in players:
+            player_stats += f"Gracz: {player['name']}\n"
+            player_stats += f"Punkty Życia: {player['score']}\n"
+            player_stats += f"Pole: {player['position']}\n"
+            player_stats += f"Poziom: {player['level']}\n"
+            player_stats += "\n"
 
-window.mainloop()
+        font = pygame.font.Font(None, 24)
+        draw_text(screen, player_stats, font, WHITE, 100, 100)
+
+        play_game(players)
+
+    else:
+        # Wyświetlanie ekranu startowego
+        manager.process_events(event)
+        manager.update(pygame.time.get_ticks() / 1000)
+        manager.draw_ui(screen)
+
+    pygame.display.flip()
+    clock.tick(60)
+
+    pygame.quit()
+
+# Uruchamianie pętli gry
+game_loop()
